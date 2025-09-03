@@ -1,0 +1,226 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dcri-clinical-trial-dashboard"
+version = "0.1.0"
+description = "FDA-compliant Clinical Trial Analytics Dashboard for Duke Clinical Research Institute"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Duke Clinical Research Institute", email = "dcri@duke.edu"}
+]
+maintainers = [
+    {name = "Duke Clinical Research Institute", email = "dcri@duke.edu"}
+]
+keywords = ["clinical-trials", "dashboard", "analytics", "fda", "cdisc"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Healthcare Industry",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10"
+dependencies = [
+    # Core web framework
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    
+    # Dashboard and visualization
+    "plotly>=5.17.0",
+    "dash>=2.14.0",
+    "dash-bootstrap-components>=1.5.0",
+    
+    # Database and ORM
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.12.0",
+    
+    # Data processing and validation
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "pandera>=0.17.0",
+    "pydantic>=2.4.0",
+    
+    # PDF generation
+    "fpdf2>=2.7.0",
+    
+    # Additional utilities
+    "python-multipart>=0.0.6",  # For FastAPI file uploads
+    "python-jose[cryptography]>=3.3.0",  # For JWT tokens
+    "passlib[bcrypt]>=1.7.4",  # For password hashing
+    "faker>=19.0.0",  # For mock data generation
+    "scipy>=1.11.0",  # For statistical analysis
+    "scikit-learn>=1.3.0",  # For anomaly detection
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",  # For testing FastAPI
+    "ruff>=0.1.0",
+    "mypy>=1.6.0",
+    "black>=23.9.0",
+    "isort>=5.12.0",
+    "pre-commit>=3.4.0",
+]
+azure = [
+    "azure-storage-blob>=12.18.0",
+    "azure-identity>=1.14.0",
+    "pyodbc>=4.0.39",  # For Azure SQL
+]
+prod = [
+    "gunicorn>=21.2.0",
+    "redis>=5.0.0",  # For caching
+    "celery>=5.3.0",  # For background tasks
+]
+
+[project.urls]
+Homepage = "https://github.com/dcri/clinical-trial-dashboard"
+Documentation = "https://dcri.github.io/clinical-trial-dashboard"
+Repository = "https://github.com/dcri/clinical-trial-dashboard"
+"Bug Tracker" = "https://github.com/dcri/clinical-trial-dashboard/issues"
+
+[project.scripts]
+ctdash = "app.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+addopts = [
+    "-ra",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-fail-under=85",
+    "--strict-markers",
+    "--strict-config",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "B904",  # raise ... from err
+]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["ARG", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+no_implicit_reexport = true
+strict_optional = true
+strict_equality = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+
+[[tool.mypy.overrides]]
+module = [
+    "dash.*",
+    "plotly.*",
+    "faker.*",
+]
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.ruff_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["app"]
+skip_glob = ["*/migrations/*"]
