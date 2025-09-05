@@ -24,17 +24,17 @@ The system will prioritize:
 
 ## 3. User Stories (Phased Roadmap)
 
-**Phase 1: MVP - Core Monitoring & Visualization**
+**Phase 1: MVP - Core Monitoring & Visualization** [COMPLETED ✅]
 
-- **US1:** As Sam, I want a chart of cumulative enrollment over time, compared against a projected target line, to track overall study progress.
+- **US1:** [DONE] As Sam, I want a chart of cumulative enrollment over time, compared against a projected target line, to track overall study progress.
   
-- **US2:** As Sam, I want an interactive map of all study sites, color-coded by a composite risk score, so I can quickly identify high-risk sites.
+- **US2:** [DONE] As Sam, I want an interactive map of all study sites, color-coded by a composite risk score, so I can quickly identify high-risk sites.
   
-- **US3:** As Alex, I want a detailed data table that is linked to the charts, allowing me to sort, filter, and inspect the raw data behind the visualizations.
+- **US3:** [DONE] As Alex, I want a detailed data table that is linked to the charts, allowing me to sort, filter, and inspect the raw data behind the visualizations.
   
-- **US4:** As Alex, I want a toggle to enter a "Demo Mode" which activates a mock data generator, so I can see how the dashboard behaves with live, streaming data.
+- **US4:** [DONE] As Alex, I want a toggle to enter a "Demo Mode" which activates a mock data generator, so I can see how the dashboard behaves with live, streaming data.
   
-- **US5:** As a user, I want a button to download the currently filtered data as a CSV file.
+- **US5:** [DONE] As a user, I want a button to download the currently filtered data as a CSV file.
   
 
 **Phase 2: Advanced Analytics & Actionability**
@@ -156,10 +156,216 @@ Implement functions in `app/core/` to detect the following:
 13. **Actionability:** Add the "Notify Site" button. The callback should open a `dcc.Modal` with a pre-filled `dcc.Textarea` (e.g., "Subject: Urgent: Enrollment Lag at Site X..."). (US8)
 14. **Patient Profile:** Implement the patient drill-down modal (US9).
 
-**Phase 3: Advanced Views & Reporting** 15. **3D Visualization:** Implement the 3D scatter plot component for lab data exploration (US10).
-16. **Patient Funnel:** Build the Sankey diagram for patient disposition (US11). You will need to add a `status` column to the `patients` table (e.g., 'Screened', 'Enrolled', 'Completed', 'Withdrawn').
-17. **PDF Reporting & AI Summary:** Add the PDF generation button (US12) and the placeholder text area for the AI summary (US13).
-18. **Finalize Testing:** Expand `pytest` coverage to include all anomaly detection functions and major dashboard callbacks. Ensure the app handles empty/filtered data gracefully.
+**Phase 3: Advanced Views & Reporting ✅ COMPLETED**
+15. **3D Visualization:** ✅ COMPLETED - Implemented comprehensive 3D scatter plot component for lab data exploration (US10). Features include:
+    - Interactive 3D visualization using Plotly Scatter3d with Site vs Patient vs Lab Value dimensions
+    - Configurable color mapping by site, age group, or sex
+    - Dynamic size scaling by lab value, age, or uniform sizing
+    - Full integration with existing site and country filters
+    - Rich hover tooltips showing patient details, site information, demographics, and lab values
+    - Sample data fallback with realistic 3D distributions for development/testing
+    - Error handling and responsive design
+16. **Patient Funnel:** ✅ COMPLETED - Built comprehensive Sankey diagram for patient disposition (US11). Features include:
+    - Dynamic patient status assignment with realistic distributions (Completed 70%, Active 10%, Withdrawn 15%, Screen Failed 5%)
+    - Three view modes: Overall Study Flow, By Site, and By Country groupings
+    - Configurable number display (absolute counts, percentages, or both)
+    - Multi-level flow visualization showing transitions between study phases
+    - Color-coded nodes and links with professional clinical trial styling
+    - Full integration with site and country filters
+    - Sample data with proper clinical trial flow patterns
+17. **PDF Reporting:** ✅ COMPLETED - Comprehensive PDF report generation system (US12). Features include:
+    - Four report types: Executive Summary, Detailed Analysis, Site Performance, Data Quality Report
+    - Configurable section inclusion (enrollment, site map, lab analysis, data quality, disposition, 3D labs)
+    - Professional PDF formatting using fpdf2 with proper headers, footers, and clinical styling
+    - Filter context preservation showing applied site/country selections in report
+    - Real-time generation status feedback with success/error indicators
+    - Sample PDF download capability with demo data
+    - Timestamp-based filename generation for organization
+    - Comprehensive error handling and fallback reporting
+18. **AI Summary Placeholder:** ✅ COMPLETED - Full UI implementation for future LLM integration (US13). Features include:
+    - Professional interface with configurable summary types (Changes Since Last Login, Key Insights, Risk Alerts, Enrollment Trends)
+    - Analysis depth selection (Brief Overview, Detailed Analysis, Executive Summary)
+    - Disabled state with clear messaging about future LLM integration
+    - Placeholder text area with preview of planned AI capabilities
+    - Clean card-based design consistent with dashboard styling
+    - Ready for backend AI service integration when available
+19. **Finalize Testing:** ✅ COMPLETED - Comprehensive test suite implemented covering all dashboard functionality:
+    - Created `test_phase3_features.py` with tests for 3D scatter plots, Sankey diagrams, and PDF generation
+    - Added `test_dashboard_core.py` with extensive coverage of dashboard callbacks and integration
+    - All core features now have robust pytest coverage with mock data validation
+    - Integration testing ensures UI components work correctly with backend data processing
+    - Test coverage includes error handling and edge cases for production reliability
+
+**Phase 4A: Statistical Field Detection (Simplified Implementation) ✅ COMPLETED**
+
+Phase 4A implements the core field detection capability (US15) using statistical correlation analysis - a simplified but effective approach to the full harmonization platform outlined in Phase 4 below.
+
+- **US15:** ✅ COMPLETED - Statistical field detection system that intelligently infers semantic meaning of ambiguous column names:
+    - Implemented `StatisticalFieldDetector` class in `/app/core/field_detection.py`
+    - Successfully detects binary fields representing sex/gender by analyzing correlations with height, weight, and hemoglobin
+    - Identifies vital status fields through distribution analysis and age correlations  
+    - Added interactive UI with confidence threshold slider and validation interface
+    - Demonstrates 80% confidence detection of "s_01" as sex field using clinical knowledge patterns
+    - Real-time analysis with user validation workflow for detected field mappings
+    - Foundation for more advanced ML-based detection in future phases
+
+**Technical Implementation Highlights:**
+- Created sample clinical data generator with realistic correlations for testing
+- Implemented statistical t-tests and correlation analysis for group differences
+- Added clinical domain knowledge patterns (height/weight differences by sex)
+- Built confidence scoring system with evidence tracking
+- Integrated seamlessly with existing dashboard UI and Bootstrap styling
+
+**Phase 4: Automated Clinical Data Harmonization Platform (Future Roadmap)**
+
+Phase 4 represents a significant evolution from a monitoring dashboard to a comprehensive data harmonization platform. This phase will enable the system to automatically ingest, normalize, and integrate clinical trial data from diverse sources and formats into a unified data model.
+
+- **US14:** As a clinical data manager, I want to upload files in various formats (CDISC, FHIR, OMOP, REDCap CSV, JSON) and have the system automatically detect and map fields to standardized concepts without requiring manual data dictionaries.
+
+- **US15:** As Alex, I want the system to intelligently infer that a binary column with header "s_01" represents sex/gender by analyzing statistical relationships with other identified fields (e.g., height, hormone levels).
+
+- **US16:** As a data scientist, I want an ML-powered semantic type detection engine that can classify columns into clinical concepts (patient ID, lab values, demographics) with confidence scores.
+
+- **US17:** As a study coordinator, I want a web interface to review and validate automatically detected field mappings before they are applied to the data transformation pipeline.
+
+- **US18:** As Sam, I want all harmonized data to be automatically loaded into our target data model (OMOP CDM) with proper vocabulary mapping to standard concept IDs.
+
+### Phase 4 Technical Implementation Roadmap
+
+**4.1 Foundation - Data Ingestion & Orchestration Infrastructure**
+
+- **Task 4.1.1:** Set up Medallion Architecture (Bronze/Silver/Gold layers)
+  - Implement cloud storage infrastructure for data lake layers
+  - Configure Bronze layer for immutable raw data storage
+  - Set up Silver layer for semantic enrichment and profiling
+  - Establish Gold layer for unified OMOP CDM target schema
+
+- **Task 4.1.2:** Deploy Dagster Workflow Orchestrator
+  - Install and configure Dagster for asset-aware pipeline orchestration
+  - Create development, staging, and production environments
+  - Implement automatic data lineage tracking across all layers
+  - Set up integrated data quality monitoring and alerting
+
+- **Task 4.1.3:** Build Modular Ingestion Framework
+  - Implement factory pattern-based ingestion service with format-specific plugins
+  - Create parsers for CDISC SDTM/ADaM using `odmlib` and `cdisc-rules-engine`
+  - Build FHIR parser using `fhirpack` for Bundle resource processing
+  - Develop REDCap integration using `PyCap` for API-based data extraction
+  - Add generic CSV/JSON parsers with `pandas` and `dask` for large files
+
+**4.2 Core Intelligence - Single-Column Semantic Inference**
+
+- **Task 4.2.1:** Implement Data Profiling Pipeline
+  - Create comprehensive feature engineering for column analysis
+  - Extract character-level, word-level, and statistical features
+  - Integrate BioBERT embeddings for biomedical domain context
+  - Generate rich metadata profiles for Silver layer annotation
+
+- **Task 4.2.2:** Deploy Sherlock Baseline Model
+  - Integrate pre-trained Sherlock deep learning model for semantic type detection
+  - Create training data bootstrapping system with cleanlab for label quality
+  - Implement 78+ semantic type classification with confidence scoring
+  - Add clinical domain-specific types (sex, lab values, patient IDs)
+
+- **Task 4.2.3:** Enhance with Context-Aware Models
+  - Implement Sato model for table context and co-occurrence patterns
+  - Add Pythagoras GNN model for numerical data with graph-based inference
+  - Integrate AutoType system for algorithmic pattern detection
+  - Create hierarchical inference pipeline with confidence propagation
+
+**4.3 Advanced Intelligence - Multi-Column Relational Inference**
+
+- **Task 4.3.1:** Build Relational Feature Engineering
+  - Implement statistical relationship analysis between columns
+  - Create feature vectors for categorical vs continuous comparisons
+  - Add correlation analysis and significance testing capabilities
+  - Develop cross-field pattern recognition for ambiguous columns
+
+- **Task 4.3.2:** Train Multi-Column Inference Models
+  - Build XGBoost/Random Forest classifier for relational fingerprints
+  - Create bootstrapped training dataset from public clinical data
+  - Implement iterative refinement with anchor column promotion
+  - Add domain knowledge patterns (height/weight relationships with sex)
+
+- **Task 4.3.3:** Develop Pattern-Based Detection
+  - Implement regex-based detection for obvious patterns (dates, IDs, emails)
+  - Create clinical vocabulary dictionaries for value matching
+  - Add checksum validation for coded identifiers
+  - Build ensemble voting system combining multiple detection methods
+
+**4.4 Normalization Engine - OMOP CDM Integration**
+
+- **Task 4.4.1:** Implement Vocabulary Mapping Services
+  - Integrate UMLS Python client for terminology crosswalking
+  - Add SNOMED CT mapping using PyMedTermino for full-text search
+  - Implement probabilistic mapping with confidence scoring
+  - Create Bayesian disambiguation using prevalence priors
+
+- **Task 4.4.2:** Build OMOP ETL Pipeline
+  - Set up OMOP CDM database schema (PostgreSQL/SQL Server)
+  - Integrate OHDSI tools (White Rabbit, Rabbit-in-a-Hat) for mapping specification
+  - Implement The Hyve's Delphyne framework for Python-based ETL execution
+  - Add Usagi integration for semi-automated concept mapping
+
+- **Task 4.4.3:** Create Semantic-to-OMOP Bridge
+  - Map inferred semantic types to OMOP table/field combinations
+  - Implement NLP-based metadata mapping using BioBERT embeddings
+  - Create version-controlled mapping configuration system
+  - Add support for custom clinical data types and extensions
+
+**4.5 Validation & Quality Assurance**
+
+- **Task 4.5.1:** Integrate OHDSI Data Quality Dashboard
+  - Implement automated post-load quality validation
+  - Create comprehensive data quality rules and thresholds
+  - Add alerts for quality violations and mapping failures
+  - Generate detailed quality reports with actionable recommendations
+
+- **Task 4.5.2:** Build User Review Interface
+  - Create web interface for mapping validation and correction
+  - Implement confidence-based review prioritization
+  - Add bulk approval/rejection workflows for efficient review
+  - Create audit trail for all manual mapping decisions
+
+- **Task 4.5.3:** Establish MLOps Pipeline
+  - Implement model versioning and performance monitoring
+  - Create retraining workflows for semantic detection models
+  - Add A/B testing framework for model improvements
+  - Set up drift detection and model refresh automation
+
+**4.6 Integration & Operationalization**
+
+- **Task 4.6.1:** Dashboard Integration
+  - Extend existing dashboard to display harmonization pipeline status
+  - Add data source management interface for upload and monitoring
+  - Create field mapping visualization and confidence reporting
+  - Implement real-time processing status and error handling
+
+- **Task 4.6.2:** API Development
+  - Create RESTful APIs for programmatic data submission
+  - Add GraphQL interface for flexible data querying
+  - Implement webhook notifications for pipeline completion
+  - Add batch processing APIs for large-scale data integration
+
+- **Task 4.6.3:** Performance Optimization
+  - Implement parallel processing for large datasets using Dask
+  - Add caching layers for frequently accessed mappings
+  - Optimize ML model inference for real-time processing
+  - Create horizontal scaling capabilities for increased throughput
+
+**4.7 Advanced Features & Extensions**
+
+- **Task 4.7.1:** Federated Learning Support
+  - Design privacy-preserving analysis capabilities
+  - Implement DataSHIELD integration for distributed analysis
+  - Add secure multiparty computation for sensitive data
+  - Create standardized analysis workflows across federated sites
+
+- **Task 4.7.2:** Large Language Model Integration
+  - Integrate LLMs for assisted concept mapping and validation
+  - Add natural language query interface for data exploration
+  - Implement automated documentation generation for mappings
+  - Create conversational interface for mapping review and refinement
 
 ## 6. Validation & Success Metrics
 

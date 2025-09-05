@@ -920,7 +920,7 @@ def main():
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8003,
         reload=True,  # Enable for development
         log_level="info"
     )
