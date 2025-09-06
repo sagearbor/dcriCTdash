@@ -56,7 +56,7 @@ def run_fastapi_server():
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8002,  # Changed from 8000 to avoid JupyterHub conflict
         reload=False,  # Disable reload to prevent conflicts
         log_level="info"
     )
@@ -66,9 +66,9 @@ def main():
     print("🚀 Starting DCRI Clinical Trial Analytics Dashboard")
     print("   Integrated FastAPI Backend + Dash Frontend")
     print("   Navigate to: http://localhost:8050 (Dashboard)")
-    print("   API Endpoints: http://localhost:8000/api/*")
-    print("   API Docs: http://localhost:8000/api/docs")
-    print("   WebSocket: ws://localhost:8000/ws")
+    print("   API Endpoints: http://localhost:8002/api/*")
+    print("   API Docs: http://localhost:8002/api/docs")
+    print("   WebSocket: ws://localhost:8002/ws")
     print("-" * 60)
     
     try:
@@ -82,7 +82,7 @@ def main():
         # Create and run the Dash app
         dash_app = create_dash_app()
         
-        print("✅ FastAPI Backend: Running on http://localhost:8000")
+        print("✅ FastAPI Backend: Running on http://localhost:8002")
         print("✅ Dash Frontend: Starting on http://localhost:8050")
         print("🎯 Access the complete dashboard at: http://localhost:8050")
         

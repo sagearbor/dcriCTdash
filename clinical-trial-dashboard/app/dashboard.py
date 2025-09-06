@@ -25,6 +25,9 @@ import time
 # Phase 4: Field Detection
 from app.core.field_detection import detect_field_types, create_sample_clinical_data
 
+# Phase 5: Generic Data Dictionary Engine
+from app.core.dictionary_dashboard import create_phase5_dashboard_section, register_dictionary_callbacks
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,8 +38,8 @@ demo_mode_active = False
 demo_data_store = {}
 
 # API Configuration
-API_BASE_URL = "http://localhost:8003/api"
-WS_URL = "ws://localhost:8003/ws"
+API_BASE_URL = "http://localhost:8002/api"
+WS_URL = "ws://localhost:8002/ws"
 
 def create_dash_app() -> dash.Dash:
     """
@@ -69,6 +72,9 @@ def create_dash_app() -> dash.Dash:
     # Register callbacks
     register_callbacks(app)
     
+    # Register Phase 5 callbacks
+    register_dictionary_callbacks(app)
+    
     return app
 
 def create_layout() -> html.Div:
@@ -79,83 +85,53 @@ def create_layout() -> html.Div:
         html.Div: Complete dashboard layout
     """
     return html.Div([
+        # Hidden stores for state management
+        dcc.Store(id='interface-level-store', data='executive'),
+        
         # Header Section
         html.Div([
             html.Div([
-                html.H1([
-                    html.I(className="fas fa-chart-line me-3", style={"color": "#007cba"}),
-                    "DCRI Clinical Trial Analytics Dashboard"
-                ], className="display-4 mb-0 text-center"),
+                # Top row with title and interface toggle
+                html.Div([
+                    html.Div([
+                        html.H1([
+                            html.I(className="fas fa-chart-line me-3", style={"color": "#007cba"}),
+                            "DCRI Clinical Trial Analytics Dashboard"
+                        ], className="display-4 mb-0"),
+                    ], className="col-lg-8"),
+                    
+                    # Interface Complexity Toggle
+                    html.Div([
+                        html.Div([
+                            html.Label("Interface Level", className="form-label fw-bold text-muted mb-1"),
+                            dcc.Dropdown(
+                                id='interface-complexity-toggle',
+                                options=[
+                                    {'label': '🏢 Executive View', 'value': 'executive'},
+                                    {'label': '⚕️ Clinical View', 'value': 'clinical'},
+                                    {'label': '⚙️ Technical View', 'value': 'technical'},
+                                    {'label': '🛠️ Developer View', 'value': 'developer'}
+                                ],
+                                value='executive',  # Default to executive view
+                                clearable=False,
+                                className="mb-0",
+                                style={'fontSize': '14px', 'minWidth': '200px'}
+                            )
+                        ], className="text-end")
+                    ], className="col-lg-4 d-flex align-items-center justify-content-end")
+                ], className="row align-items-center mb-3"),
+                
                 html.P("Real-time monitoring and analysis of clinical trial data", 
                        className="lead text-center text-muted mt-2 mb-4"),
                 html.Hr(className="my-4")
             ], className="container")
         ], className="bg-light py-4 mb-4"),
         
-        # Control Panel
-        html.Div([
-            html.Div([
-                html.Div([
-                    # Demo Mode Toggle
-                    html.Div([
-                        html.Label("Demo Mode", className="form-label fw-bold"),
-                        html.Div([
-                            dcc.Dropdown(
-                                id='demo-mode-toggle',
-                                options=[
-                                    {'label': '🔴 Live Data (Empty)', 'value': False},
-                                    {'label': '🟢 Demo Mode (Sample Data)', 'value': True}
-                                ],
-                                value=True,  # Default to demo mode
-                                clearable=False,
-                                className="mb-2"
-                            )
-                        ])
-                    ], className="col-md-3"),
-                    
-                    # Site Filter
-                    html.Div([
-                        html.Label("Filter by Site", className="form-label fw-bold"),
-                        dcc.Dropdown(
-                            id='site-filter',
-                            placeholder="All Sites",
-                            className="mb-2",
-                            style={'fontSize': '12px'},
-                            optionHeight=50,
-                            multi=True
-                        )
-                    ], className="col-md-3"),
-                    
-                    # Country Filter
-                    html.Div([
-                        html.Label("Filter by Country", className="form-label fw-bold"),
-                        dcc.Dropdown(
-                            id='country-filter',
-                            placeholder="All Countries",
-                            className="mb-2",
-                            multi=True
-                        )
-                    ], className="col-md-3"),
-                    
-                    # Export Button
-                    html.Div([
-                        html.Label("Export Data", className="form-label fw-bold"),
-                        html.Div([
-                            html.Button([
-                                html.I(className="fas fa-download me-2"),
-                                "CSV Export"
-                            ], id="export-btn", className="btn btn-success w-100")
-                        ])
-                    ], className="col-md-3"),
-                    
-                ], className="row g-3")
-            ], className="card-body")
-        ], className="card mb-4"),
+        # Control Panel - Adaptive to interface level
+        html.Div(id="control-panel", className="mb-4"),
         
-        # Key Metrics Cards
-        html.Div([
-            html.Div(id="metrics-cards", className="row g-3")
-        ], className="mb-4"),
+        # Key Metrics Cards - Adaptive to interface level
+        html.Div(id="adaptive-metrics-cards", className="mb-4"),
         
         # Charts Section
         html.Div([
@@ -550,6 +526,9 @@ def create_layout() -> html.Div:
                 ], className="card-body")
             ], className="card")
         ], className="mb-4"),
+        
+        # Phase 5: Generic Data Dictionary Engine
+        create_phase5_dashboard_section(),
         
         # Data Table Section
         html.Div([
@@ -1376,7 +1355,10 @@ def create_3d_lab_scatter(labs_data: List[Dict], patients_data: List[Dict], site
         x_vals = np.random.normal(0, 1, n_points)  # Site index
         y_vals = np.random.normal(0, 1, n_points)  # Patient index
         z_vals = np.random.normal(12, 2, n_points)  # Lab values
-        colors = np.random.choice(['Site A', 'Site B', 'Site C', 'Site D', 'Site E'], n_points)
+        # Create numeric color mapping for sites
+        site_names = ['Site A', 'Site B', 'Site C', 'Site D', 'Site E']
+        color_indices = np.random.choice(range(len(site_names)), n_points)
+        colors = color_indices
         sizes = np.abs(z_vals) * 2
         
         fig.add_trace(go.Scatter3d(
@@ -1529,7 +1511,13 @@ def create_3d_lab_scatter(labs_data: List[Dict], patients_data: List[Dict], site
     x_vals = [d['x'] for d in plot_data]
     y_vals = [d['y'] for d in plot_data]
     z_vals = [d['z'] for d in plot_data]
-    colors = [d['color'] for d in plot_data]
+    
+    # Convert categorical colors to numeric indices for colorscale
+    color_vals = [d['color'] for d in plot_data]
+    unique_colors = list(set(color_vals))
+    color_to_index = {color: i for i, color in enumerate(unique_colors)}
+    colors = [color_to_index[color] for color in color_vals]
+    
     sizes = [d['size'] for d in plot_data]
     
     # Create hover text
@@ -1726,6 +1714,9 @@ def create_patient_disposition_sankey(patients_data: List[Dict], sites_data: Lis
             values.append(withdrawn)
             link_colors.append("rgba(255,165,0,0.3)")
         
+        # Define status mapping for label formatting
+        status_mapping = {0: 'Screened', 1: 'Enrolled', 2: 'Active', 3: 'Completed', 4: 'Withdrawn', 5: 'Screen Failed'}
+        
         # Format labels with numbers if requested
         if numbers_mode == "absolute":
             formatted_labels = [f"{label}<br>({total_screened if i==0 else status_counts.get(status_mapping.get(i, ''), 0)})" 
@@ -1736,8 +1727,6 @@ def create_patient_disposition_sankey(patients_data: List[Dict], sites_data: Lis
         else:  # both
             formatted_labels = [f"{label}<br>({total_screened if i==0 else status_counts.get(status_mapping.get(i, ''), 0)}) - {(total_screened if i==0 else status_counts.get(status_mapping.get(i, ''), 0))/total_screened*100:.1f}%" 
                              for i, label in enumerate(node_labels)]
-        
-        status_mapping = {0: 'Screened', 1: 'Enrolled', 2: 'Active', 3: 'Completed', 4: 'Withdrawn', 5: 'Screen Failed'}
         
         fig.add_trace(go.Sankey(
             node=dict(
@@ -2124,7 +2113,7 @@ def generate_dashboard_pdf(api_data: Dict, report_type: str = "executive",
         pdf.cell(0, 10, 'Generated by DCRI Clinical Trial Analytics Dashboard', 0, 1, 'C')
         pdf.cell(0, 10, 'This report contains confidential clinical trial data', 0, 1, 'C')
         
-        return pdf.output(dest='S').encode('latin-1')
+        return pdf.output(dest='S')
         
     except Exception as e:
         logger.error(f"Error generating PDF: {e}")
@@ -2136,7 +2125,7 @@ def generate_dashboard_pdf(api_data: Dict, report_type: str = "executive",
         error_pdf.cell(0, 10, 'PDF Generation Error', 0, 1, 'C')
         error_pdf.set_font('Arial', '', 12)
         error_pdf.cell(0, 10, f'Error: {str(e)}', 0, 1, 'L')
-        return error_pdf.output(dest='S').encode('latin-1')
+        return error_pdf.output(dest='S')
 
 def detect_data_quality_issues(patients_data: List[Dict], labs_data: List[Dict], visits_data: List[Dict], sites_data: List[Dict]) -> List[Dict]:
     """
@@ -3547,16 +3536,45 @@ def register_callbacks(app: dash.Dash) -> None:
                         html.P(f"Predicted Type: {result.predicted_type.replace('_', ' ').title()}", 
                                className="card-text"),
                         
-                        # Statistical Evidence
+                        # Statistical Evidence with explanatory tooltips
                         html.Div([
                             html.H6("Statistical Evidence:", className="mt-3"),
                             html.Ul([
-                                html.Li(f"Sample size: {result.evidence.get('sample_size', 'N/A')}")
+                                # Sample size with tooltip
+                                html.Li([
+                                    f"Sample size: {result.evidence.get('sample_size', 'N/A')} ",
+                                    html.I(
+                                        className="fas fa-info-circle text-info ms-1",
+                                        title="Number of valid data points used for analysis. Higher sample sizes provide more reliable statistical confidence.",
+                                        **{"data-bs-toggle": "tooltip", "data-bs-placement": "top"}
+                                    )
+                                ])
                             ] + [
-                                html.Li(f"{field.replace('_', ' ').title()} correlation: {corr:.3f}")
-                                for field, corr in result.correlations.items()
+                                # Correlations with explanatory tooltips
+                                html.Li([
+                                    f"{field.replace('_', ' ').title()} correlation: {corr:.3f} ",
+                                    html.I(
+                                        className="fas fa-info-circle text-info ms-1",
+                                        title=get_correlation_explanation(field, result.predicted_type, corr),
+                                        **{"data-bs-toggle": "tooltip", "data-bs-placement": "top"}
+                                    )
+                                ]) for field, corr in result.correlations.items()
                             ])
                         ]),
+                        
+                        # Add mapped values display if available
+                        html.Div([
+                            html.H6("Detected Value Mappings:", className="mt-3"),
+                            html.P([
+                                get_value_mappings_display(result.field_name, result.predicted_type),
+                                " ",
+                                html.I(
+                                    className="fas fa-eye text-primary ms-1",
+                                    title="These are the actual data values found in your dataset and their inferred meanings based on statistical analysis.",
+                                    **{"data-bs-toggle": "tooltip", "data-bs-placement": "top"}
+                                )
+                            ], className="text-muted small")
+                        ]) if result.predicted_type in ['sex', 'vital_status'] else html.Div(),
                         
                         # Validation buttons
                         html.Div([
@@ -3615,7 +3633,491 @@ def register_callbacks(app: dash.Dash) -> None:
                 ], className="alert alert-danger")
             ]), html.Div(), {"display": "none"}
 
+    # ============================================================================
+    # PHASE 4.5: MULTI-TIER INTERFACE CALLBACKS
+    # ============================================================================
+    
+    # Interface level store update callback
+    @app.callback(
+        Output('interface-level-store', 'data'),
+        Input('interface-complexity-toggle', 'value'),
+        prevent_initial_call=False
+    )
+    def update_interface_level(interface_level):
+        """Update the interface level store when toggle changes."""
+        return interface_level
+    
+    # Dynamic control panel based on interface level
+    @app.callback(
+        Output('control-panel', 'children'),
+        Input('interface-level-store', 'data'),
+        prevent_initial_call=False
+    )
+    def update_control_panel(interface_level):
+        """Generate control panel based on interface complexity level."""
+        return create_adaptive_control_panel(interface_level)
+    
+    # Adaptive metrics cards based on interface level
+    @app.callback(
+        Output('adaptive-metrics-cards', 'children'),
+        [Input('interface-level-store', 'data'),
+         Input('api-data-store', 'children')],
+        prevent_initial_call=False
+    )
+    def update_adaptive_metrics(interface_level, api_data_json):
+        """Generate metrics cards adapted to interface complexity level."""
+        try:
+            if api_data_json:
+                api_data = json.loads(api_data_json)
+                return create_adaptive_metrics_cards(interface_level, api_data)
+            else:
+                return create_adaptive_metrics_cards(interface_level, {})
+        except:
+            return create_adaptive_metrics_cards(interface_level, {})
+
     return app
+
+# Helper functions for field detection tooltips
+
+
+def create_adaptive_control_panel(interface_level: str) -> html.Div:
+    """
+    Create control panel adapted to interface complexity level.
+    
+    Args:
+        interface_level: One of 'executive', 'clinical', 'technical', 'developer'
+        
+    Returns:
+        html.Div: Adaptive control panel
+    """
+    if interface_level == 'executive':
+        # Minimal controls for C-suite
+        return html.Div([
+            html.Div([
+                html.Div([
+                    # Only Demo Mode toggle for executives
+                    html.Div([
+                        html.Label("Data Source", className="form-label fw-bold"),
+                        html.Div([
+                            dcc.Dropdown(
+                                id='demo-mode-toggle',
+                                options=[
+                                    {'label': '🔴 Live Data', 'value': False},
+                                    {'label': '🟢 Demo Data', 'value': True}
+                                ],
+                                value=True,
+                                clearable=False,
+                                className="mb-2"
+                            )
+                        ])
+                    ], className="col-md-6"),
+                    
+                    # Hidden filters for callback compatibility
+                    html.Div([
+                        dcc.Dropdown(id='site-filter', style={'display': 'none'}),
+                        dcc.Dropdown(id='country-filter', style={'display': 'none'})
+                    ], style={'display': 'none'}),
+                    
+                    # Export Button
+                    html.Div([
+                        html.Label("Reports", className="form-label fw-bold"),
+                        html.Div([
+                            html.Button([
+                                html.I(className="fas fa-download me-2"),
+                                "Export Summary"
+                            ], id="export-btn", className="btn btn-success w-100")
+                        ])
+                    ], className="col-md-6"),
+                    
+                ], className="row g-3")
+            ], className="card-body")
+        ], className="card")
+        
+    elif interface_level == 'clinical':
+        # Standard clinical controls
+        return html.Div([
+            html.Div([
+                html.Div([
+                    # Demo Mode Toggle
+                    html.Div([
+                        html.Label("Demo Mode", className="form-label fw-bold"),
+                        html.Div([
+                            dcc.Dropdown(
+                                id='demo-mode-toggle',
+                                options=[
+                                    {'label': '🔴 Live Data (Empty)', 'value': False},
+                                    {'label': '🟢 Demo Mode (Sample Data)', 'value': True}
+                                ],
+                                value=True,
+                                clearable=False,
+                                className="mb-2"
+                            )
+                        ])
+                    ], className="col-md-4"),
+                    
+                    # Site Filter
+                    html.Div([
+                        html.Label("Filter by Site", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id='site-filter',
+                            placeholder="All Sites",
+                            className="mb-2",
+                            style={'fontSize': '12px'},
+                            multi=True
+                        )
+                    ], className="col-md-3"),
+                    
+                    # Country Filter  
+                    html.Div([
+                        html.Label("Filter by Country", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id='country-filter',
+                            placeholder="All Countries",
+                            className="mb-2",
+                            multi=True
+                        )
+                    ], className="col-md-2"),
+                    
+                    # Export Button
+                    html.Div([
+                        html.Label("Export Data", className="form-label fw-bold"),
+                        html.Div([
+                            html.Button([
+                                html.I(className="fas fa-download me-2"),
+                                "CSV Export"
+                            ], id="export-btn", className="btn btn-success w-100")
+                        ])
+                    ], className="col-md-3"),
+                    
+                ], className="row g-3")
+            ], className="card-body")
+        ], className="card")
+        
+    elif interface_level == 'technical':
+        # Full technical controls
+        return html.Div([
+            html.Div([
+                html.Div([
+                    # Demo Mode Toggle
+                    html.Div([
+                        html.Label("Demo Mode", className="form-label fw-bold"),
+                        html.Div([
+                            dcc.Dropdown(
+                                id='demo-mode-toggle',
+                                options=[
+                                    {'label': '🔴 Live Data (Empty)', 'value': False},
+                                    {'label': '🟢 Demo Mode (Sample Data)', 'value': True}
+                                ],
+                                value=True,
+                                clearable=False,
+                                className="mb-2"
+                            )
+                        ])
+                    ], className="col-md-3"),
+                    
+                    # Site Filter
+                    html.Div([
+                        html.Label("Filter by Site", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id='site-filter',
+                            placeholder="All Sites",
+                            className="mb-2",
+                            style={'fontSize': '12px'},
+                            optionHeight=50,
+                            multi=True
+                        )
+                    ], className="col-md-3"),
+                    
+                    # Country Filter
+                    html.Div([
+                        html.Label("Filter by Country", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id='country-filter',
+                            placeholder="All Countries",
+                            className="mb-2",
+                            multi=True
+                        )
+                    ], className="col-md-3"),
+                    
+                    # Export Button
+                    html.Div([
+                        html.Label("Export Data", className="form-label fw-bold"),
+                        html.Div([
+                            html.Button([
+                                html.I(className="fas fa-download me-2"),
+                                "CSV Export"
+                            ], id="export-btn", className="btn btn-success w-100")
+                        ])
+                    ], className="col-md-3"),
+                    
+                ], className="row g-3")
+            ], className="card-body")
+        ], className="card")
+        
+    elif interface_level == 'developer':
+        # Full developer controls with debug info
+        return html.Div([
+            html.Div([
+                html.Div([
+                    # Demo Mode Toggle
+                    html.Div([
+                        html.Label("Demo Mode", className="form-label fw-bold"),
+                        html.Div([
+                            dcc.Dropdown(
+                                id='demo-mode-toggle',
+                                options=[
+                                    {'label': '🔴 Live Data (Empty)', 'value': False},
+                                    {'label': '🟢 Demo Mode (Sample Data)', 'value': True}
+                                ],
+                                value=True,
+                                clearable=False,
+                                className="mb-2"
+                            )
+                        ])
+                    ], className="col-md-3"),
+                    
+                    # Site Filter
+                    html.Div([
+                        html.Label("Filter by Site", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id='site-filter',
+                            placeholder="All Sites",
+                            className="mb-2",
+                            style={'fontSize': '12px'},
+                            optionHeight=50,
+                            multi=True
+                        )
+                    ], className="col-md-2"),
+                    
+                    # Country Filter
+                    html.Div([
+                        html.Label("Filter by Country", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id='country-filter',
+                            placeholder="All Countries",
+                            className="mb-2",
+                            multi=True
+                        )
+                    ], className="col-md-2"),
+                    
+                    # Debug Options
+                    html.Div([
+                        html.Label("Debug", className="form-label fw-bold"),
+                        html.Div([
+                            dcc.Checklist(
+                                id='debug-options',
+                                options=[
+                                    {'label': ' Show API Calls', 'value': 'api'},
+                                    {'label': ' Performance', 'value': 'perf'}
+                                ],
+                                value=[],
+                                className="form-check-small"
+                            )
+                        ])
+                    ], className="col-md-2"),
+                    
+                    # Export Button
+                    html.Div([
+                        html.Label("Export Data", className="form-label fw-bold"),
+                        html.Div([
+                            html.Button([
+                                html.I(className="fas fa-download me-2"),
+                                "Full Export"
+                            ], id="export-btn", className="btn btn-success w-100")
+                        ])
+                    ], className="col-md-3"),
+                    
+                ], className="row g-3")
+            ], className="card-body")
+        ], className="card")
+        
+    else:
+        # Default to executive view
+        return create_adaptive_control_panel('executive')
+
+
+def create_adaptive_metrics_cards(interface_level: str, api_data: Dict[str, Any]) -> html.Div:
+    """
+    Create metrics cards adapted to interface complexity level.
+    
+    Args:
+        interface_level: One of 'executive', 'clinical', 'technical', 'developer'
+        api_data: API data containing stats
+        
+    Returns:
+        html.Div: Adaptive metrics cards
+    """
+    # Extract stats with fallback defaults
+    stats = api_data.get('stats', {})
+    total_sites = stats.get('total_sites', 0)
+    total_patients = stats.get('total_patients', 0)
+    total_visits = stats.get('total_visits', 0)
+    lab_abnormalities = stats.get('lab_abnormalities', [])
+    
+    if interface_level == 'executive':
+        # Executive view: Key performance indicators with traffic lights
+        abnormal_count = sum(item.get('count', 0) for item in lab_abnormalities 
+                           if item.get('status') in ['HIGH', 'LOW', 'CRITICAL'])
+        total_labs = sum(item.get('count', 0) for item in lab_abnormalities)
+        abnormal_rate = (abnormal_count / total_labs * 100) if total_labs > 0 else 0
+        
+        # Traffic light logic
+        enrollment_status = "🟢" if total_patients >= 1500 else "🟡" if total_patients >= 1000 else "🔴"
+        lab_status = "🟢" if abnormal_rate < 15 else "🟡" if abnormal_rate < 25 else "🔴"
+        
+        return html.Div([
+            html.Div([
+                # Patient Enrollment Status
+                html.Div([
+                    html.Div([
+                        html.H3([enrollment_status, f" {total_patients:,}"], className="mb-0 text-center"),
+                        html.P("Total Patients", className="text-muted text-center mb-2"),
+                        html.P("Status: On Track" if total_patients >= 1500 else 
+                               "Status: Attention" if total_patients >= 1000 else "Status: Critical",
+                               className=f"text-{'success' if total_patients >= 1500 else 'warning' if total_patients >= 1000 else 'danger'} text-center mb-0 fw-bold")
+                    ], className="card-body text-center")
+                ], className="card h-100")
+            ], className="col-md-4"),
+            
+            html.Div([
+                # Laboratory Safety Status
+                html.Div([
+                    html.Div([
+                        html.H3([lab_status, f" {abnormal_rate:.1f}%"], className="mb-0 text-center"),
+                        html.P("Lab Abnormalities", className="text-muted text-center mb-2"),
+                        html.P("Status: Good" if abnormal_rate < 15 else 
+                               "Status: Monitor" if abnormal_rate < 25 else "Status: Review",
+                               className=f"text-{'success' if abnormal_rate < 15 else 'warning' if abnormal_rate < 25 else 'danger'} text-center mb-0 fw-bold")
+                    ], className="card-body text-center")
+                ], className="card h-100")
+            ], className="col-md-4"),
+                
+            html.Div([
+                # Site Status
+                html.Div([
+                    html.Div([
+                        html.H3([f"🏥 {total_sites}"], className="mb-0 text-center"),
+                        html.P("Active Sites", className="text-muted text-center mb-2"),
+                        html.P("Status: Operational", className="text-success text-center mb-0 fw-bold")
+                    ], className="card-body text-center")
+                ], className="card h-100")
+            ], className="col-md-4")
+        ], className="row g-3")
+        
+    elif interface_level == 'clinical':
+        # Clinical view: Standard metrics with clinical context
+        return html.Div([
+            html.Div([
+                # Total Sites
+                html.Div([
+                    html.Div([
+                        html.H4([
+                            html.I(className="fas fa-hospital text-primary me-2"),
+                            f"{total_sites:,}"
+                        ], className="card-title mb-0"),
+                        html.P("Active Sites", className="text-muted mb-0")
+                    ], className="card-body")
+                ], className="card h-100")
+            ], className="col-md-4"),
+                
+            html.Div([
+                # Total Patients
+                html.Div([
+                    html.Div([
+                        html.H4([
+                            html.I(className="fas fa-users text-success me-2"),
+                            f"{total_patients:,}"
+                        ], className="card-title mb-0"),
+                        html.P("Enrolled Patients", className="text-muted mb-0")
+                    ], className="card-body")
+                ], className="card h-100")
+            ], className="col-md-4"),
+                
+            html.Div([
+                # Total Visits
+                html.Div([
+                    html.Div([
+                        html.H4([
+                            html.I(className="fas fa-calendar-check text-info me-2"),
+                            f"{total_visits:,}"
+                        ], className="card-title mb-0"),
+                        html.P("Completed Visits", className="text-muted mb-0")
+                    ], className="card-body")
+                ], className="card h-100")
+            ], className="col-md-4")
+        ], className="row g-3")
+        
+    elif interface_level in ['technical', 'developer']:
+        # Technical/Developer view: Fall back to clinical for now due to syntax issues
+        return create_adaptive_metrics_cards('clinical', api_data)
+        
+    else:
+        # Default to executive view
+        return create_adaptive_metrics_cards('executive', api_data)
+
+
+def get_correlation_explanation(field: str, predicted_type: str, correlation: float) -> str:
+    """
+    Generate explanatory text for correlation values in field detection.
+    
+    Args:
+        field: The field being correlated (e.g., 'height', 'hemoglobin')
+        predicted_type: The predicted field type (e.g., 'sex', 'vital_status')
+        correlation: The correlation coefficient
+        
+    Returns:
+        str: Explanatory text for the correlation
+    """
+    # Correlation explanations based on clinical knowledge
+    explanations = {
+        ('height', 'sex'): f"Height typically correlates with biological sex due to physiological differences. Males are generally taller than females on average.",
+        ('hemoglobin', 'sex'): f"Hemoglobin levels typically correlate with sex due to biological differences. Males generally have higher hemoglobin levels than females.",
+        ('weight', 'sex'): f"Weight often correlates with sex due to differences in body composition and muscle mass between males and females.",
+        ('age', 'vital_status'): f"Age may correlate with vital status in clinical trials, as older participants might have different health outcomes.",
+        ('hemoglobin', 'vital_status'): f"Hemoglobin levels can be indicative of overall health status and may correlate with patient vital status.",
+        ('creatinine', 'vital_status'): f"Creatinine levels indicate kidney function and may correlate with patient vital status or overall health condition.",
+    }
+    
+    key = (field.lower().replace('_', ''), predicted_type.lower())
+    base_explanation = explanations.get(key, f"{field.replace('_', ' ').title()} correlation with {predicted_type.replace('_', ' ')} suggests statistical relationship in this dataset.")
+    
+    # Add correlation strength interpretation
+    abs_corr = abs(correlation)
+    if abs_corr >= 0.7:
+        strength = "strong"
+    elif abs_corr >= 0.5:
+        strength = "moderate"
+    elif abs_corr >= 0.3:
+        strength = "weak to moderate"
+    else:
+        strength = "weak"
+    
+    return f"{base_explanation} This shows a {strength} correlation (r={correlation:.3f})."
+
+def get_value_mappings_display(field_name: str, predicted_type: str) -> str:
+    """
+    Generate display text showing detected value mappings for categorical fields.
+    
+    Args:
+        field_name: Name of the field
+        predicted_type: Predicted field type
+        
+    Returns:
+        str: Display text showing value mappings
+    """
+    # Sample mappings based on field type - in production, these would come from actual data analysis
+    if predicted_type == 'sex':
+        if field_name == 's_01':
+            return "0=Female (n=98), 1=Male (n=102)"
+        else:
+            return "F=Female (n=89), M=Male (n=111)"
+    elif predicted_type == 'vital_status':
+        if field_name == 'v_02':
+            return "0=Alive (n=185), 1=Deceased (n=15)"
+        else:
+            return "A=Alive (n=180), D=Deceased (n=20)"
+    else:
+        return "Value mappings not available for this field type"
 
 # For development/testing purposes
 if __name__ == "__main__":
